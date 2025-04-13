@@ -1,8 +1,11 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<math.h>
-
 #include <sys/time.h>
+
+#define G 6.6743
+#define dt 0.001
+#define Gdt (G * dt)
 
 float tdiff(struct timeval *start, struct timeval *end) {
   return (end->tv_sec-start->tv_sec) + 1e-6*(end->tv_usec-start->tv_usec);
@@ -36,8 +39,6 @@ double randomDouble()
 
 int nplanets;
 int timesteps;
-double dt;
-double G;
 
 Planet* next(Planet* planets) {
    Planet* nextplanets = (Planet*)malloc(sizeof(Planet) * nplanets);
@@ -73,8 +74,6 @@ int main(int argc, const char** argv){
    }
    nplanets = atoi(argv[1]);
    timesteps = atoi(argv[2]);
-   dt = 0.001;
-   G = 6.6743;
 
    Planet* planets = (Planet*)malloc(sizeof(Planet) * nplanets);
    for (int i=0; i<nplanets; i++) {
