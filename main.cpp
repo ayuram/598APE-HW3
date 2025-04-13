@@ -1,6 +1,7 @@
-#include<stdio.h>
-#include<stdlib.h>
-#include<math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include <omp.h>
 
 #include <sys/time.h>
 
@@ -38,30 +39,48 @@ int nplanets;
 int timesteps;
 double dt;
 double G;
+double Gdt;
 
 Planet* next(Planet* planets) {
    Planet* nextplanets = (Planet*)malloc(sizeof(Planet) * nplanets);
-   for (int i=0; i<nplanets; i++) {
-      nextplanets[i].vx = planets[i].vx;
-      nextplanets[i].vy = planets[i].vy;
-      nextplanets[i].mass = planets[i].mass;
-      nextplanets[i].x = planets[i].x;
-      nextplanets[i].y = planets[i].y;
+   
+   // Copy initial state
+   #pragma omp parallel for
+   for (int i = 0; i < nplanets; i++) {
+      nextplanets[i] = planets[i];
    }
 
-   for (int i=0; i<nplanets; i++) {
-      for (int j=0; j<nplanets; j++) {
+   // Calculate forces
+   #pragma omp parallel for
+   for (int i = 0; i < nplanets; i++) {
+      double vx_acc = 0.0;
+      double vy_acc = 0.0;
+      
+      for (int j = 0; j < nplanets; j++) {
+         if (i == j) continue; // Skip self interaction
+         
          double dx = planets[j].x - planets[i].x;
          double dy = planets[j].y - planets[i].y;
          double distSqr = dx*dx + dy*dy + 0.0001;
-         double invDist = planets[i].mass * planets[j].mass / sqrt(distSqr);
-         double invDist3 = invDist * invDist * invDist;
-         nextplanets[i].vx += dt * dx * invDist3;
-         nextplanets[i].vy += dt * dy * invDist3;
+         double distSixth = distSqr * distSqr * distSqr;
+         double force = Gdt * planets[j].mass / sqrt(distSixth);
+         
+         vx_acc += dx * force;
+         vy_acc += dy * force;
       }
+      
+      // Update velocity
+      nextplanets[i].vx += vx_acc;
+      nextplanets[i].vy += vy_acc;
+   }
+   
+   // Update positions
+   #pragma omp parallel for
+   for (int i = 0; i < nplanets; i++) {
       nextplanets[i].x += dt * nextplanets[i].vx;
       nextplanets[i].y += dt * nextplanets[i].vy;
    }
+   
    free(planets);
    return nextplanets;
 }
@@ -75,6 +94,10 @@ int main(int argc, const char** argv){
    timesteps = atoi(argv[2]);
    dt = 0.001;
    G = 6.6743;
+   Gdt = G * dt;
+
+   int nthreads = omp_get_max_threads();
+   printf("Using %d threads\n", nthreads);
 
    Planet* planets = (Planet*)malloc(sizeof(Planet) * nplanets);
    for (int i=0; i<nplanets; i++) {
