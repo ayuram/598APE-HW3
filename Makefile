@@ -1,13 +1,15 @@
-FUNC := g++
-copt := -c 
-OBJ_DIR := ./bin/
-FLAGS := -O3 -lm -g -Werror
-
-CPP_FILES := $(wildcard src/*.cpp)
-OBJ_FILES := $(addprefix $(OBJ_DIR),$(notdir $(CPP_FILES:.cpp=.obj)))
+CXX := g++
+CXXFLAGS := -O3 -g -fno-omit-frame-pointer -Werror
+LDFLAGS := -lm
+TARGET := main.exe
+CPP_FILES := $(wildcard *.cpp)
 
 all:
-	$(FUNC) ./main.cpp -o ./main.exe $(FLAGS)
+	$(CXX) $(CXXFLAGS) $(CPP_FILES) -o $(TARGET) $(LDFLAGS)
 
 clean:
-	rm -f ./*.exe
+	rm -f $(TARGET) perf.data flamegraph.svg perf.data.old
+
+flamegraph: all
+	perf record -F 99 -g ./$(TARGET) 1000 5000
+	perf script | ~/Flamegraph/stackcollapse-perf.pl | ~/Flamegraph/flamegraph.pl > flamegraph.svg
