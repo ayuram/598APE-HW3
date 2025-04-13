@@ -1,32 +1,67 @@
 #!/bin/bash
 
-set -e  # Exit immediately if a command fails
+set -euo pipefail
 
-TARGET=main.exe
-PERF_REPORT=perf_report.txt
+# === CONFIGURATION ===
+EXECUTABLE="./main.exe"
+NPLANETS=1000
+TIMESTEPS=5000
+PERF_DATA="perf.data"
+PERF_SCRIPT="perf_unfolded.perf"
+FLAMEGRAPH_SVG="flamegraph.svg"
+SUMMARY_TXT="perf_summary.txt"
 
-# Compile the program
-echo "Compiling..."
-g++ -O3 -g -fno-omit-frame-pointer -Werror -fopenmp main.cpp -o $TARGET -lm
+# === CHECK DEPENDENCIES ===
+for cmd in make perf git gcc; do
+    command -v "$cmd" >/dev/null 2>&1 || { echo "$cmd is not installed. Aborting." >&2; exit 1; }
+done
 
-# Run the program in the background
-echo "Running simulation in background..."
-./$TARGET 1000 5000 &
-PID=$!
+# === BUILD PROJECT ===
+echo "Building the project..."
+make -j
 
-# Wait a bit for it to start up
-sleep 1
+# === PERF RECORD ===
+echo "Running perf record on $EXECUTABLE..."
+perf record -F 99 -g -- "$EXECUTABLE" "$NPLANETS" "$TIMESTEPS"
 
-# Collect perf stat (per-thread)
-echo "Collecting perf stat..."
-perf stat --per-thread -p $PID -o $PERF_REPORT
+# === PERF REPORT (Interactive) ===
+echo "Generating interactive perf report..."
+perf report
 
-# Wait for program to finish
-wait $PID
+# === GENERATE SUMMARY TEXT REPORT ===
+echo "Generating summary report (CPU cycles, instructions, cache misses, etc.)..."
 
-# Now do a perf record + flamegraph
+perf stat -d -- "$EXECUTABLE" "$NPLANETS" "$TIMESTEPS" | tee "$SUMMARY_TXT"
+
+echo "Summary report saved to $SUMMARY_TXT 📄"
+
+# === FLAMEGRAPH ===
 echo "Generating flamegraph..."
-perf record -F 99 -g ./$TARGET 1000 5000
-perf script | ~/Flamegraph/stackcollapse-perf.pl | ~/Flamegraph/flamegraph.pl > flamegraph.svg
+if [ ! -d "FlameGraph" ]; then
+    echo "FlameGraph repo not found, cloning..."
+    git clone https://github.com/brendangregg/FlameGraph.git
+fi
 
-echo "Done!"
+# Expand the raw perf data
+perf script > "$PERF_SCRIPT"
+
+# Collapse the stacks
+./FlameGraph/stackcollapse-perf.pl "$PERF_SCRIPT" > out.folded
+
+# Generate the flamegraph
+./FlameGraph/flamegraph.pl out.folded > "$FLAMEGRAPH_SVG"
+
+echo "Flamegraph generated at $FLAMEGRAPH_SVG ✅"
+
+# === FINAL NOTE ===
+if command -v xdg-open &> /dev/null; then
+    echo "Opening flamegraph in default browser..."
+    xdg-open "$FLAMEGRAPH_SVG"
+elif command -v open &> /dev/null; then  # macOS
+    echo "Opening flamegraph in default browser..."
+    open "$FLAMEGRAPH_SVG"
+else
+    echo "Please manually open $FLAMEGRAPH_SVG in your browser 🌍"
+fi
+
+echo "All done! 🎯"

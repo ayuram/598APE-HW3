@@ -10,12 +10,3 @@ all:
 
 clean:
 	rm -f $(TARGET) perf.data flamegraph.svg perf.data.old $(PERF_REPORT)
-
-flamegraph: all
-	./$(TARGET) 1000 5000 &
-	sleep 1
-	PID=$$(pidof $(TARGET)); \
-	perf stat --per-thread -p $$PID -o $(PERF_REPORT); \
-	wait $$PID
-	perf record -F 99 -g ./$(TARGET) 1000 5000
-	perf script | ~/Flamegraph/stackcollapse-perf.pl | ~/Flamegraph/flamegraph.pl > flamegraph.svg
