@@ -9,7 +9,7 @@ all:
 	$(CXX) $(CXXFLAGS) $(CPP_FILES) -o $(TARGET) $(LDFLAGS)
 
 clean:
-	rm -f $(TARGET) perf.data flamegraph.svg perf.data.old $(PERF_REPORT)
+	rm -f $(TARGET)
 
 flamegraph: all
 	perf stat -o $(PERF_REPORT) ./$(TARGET) 1000 5000
