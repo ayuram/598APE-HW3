@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <sys/time.h>
+#include <omp.h>
 
 #define G 6.6743
 #define dt 0.001
@@ -286,6 +287,11 @@ int main(int argc, const char** argv){
     if (argc > 3) {
         THETA = atof(argv[3]);
     }
+
+    // print max threads with omp
+    int max_threads = omp_get_max_threads();
+    printf("Max threads: %d\n", max_threads);
+
 
    // Allocate initial planet array
    Planet* planets = (Planet*)malloc(sizeof(Planet) * nplanets);
