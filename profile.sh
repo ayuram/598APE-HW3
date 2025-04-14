@@ -17,7 +17,7 @@ rm -f perf.data perf.data.old perf_report.txt perf_stat.txt flamegraph.svg
 
 # Step 4: Collect CPU cycles and branch misses
 echo "🧠 Collecting CPU and branch stats (perf_stat.txt)..."
-perf stat -e cycles,instructions,branches,branch-misses,cache-references,cache-misses -o perf_stat.txt ./$TARGET $ARGS
+perf stat -o perf_stat.txt ./$TARGET $ARGS
 
 echo "✅ Done! Files generated:"
 echo " - perf_stat.txt (cycles, branch misses, cache stats)"
