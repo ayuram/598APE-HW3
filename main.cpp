@@ -41,15 +41,7 @@ double dt;
 double G;
 double Gdt;
 
-Planet* next(Planet* planets) {
-   Planet* nextplanets = (Planet*)malloc(sizeof(Planet) * nplanets);
-   
-   // Copy initial state
-   #pragma omp parallel for
-   for (int i = 0; i < nplanets; i++) {
-      nextplanets[i] = planets[i];
-   }
-
+void next(Planet* planets) {
    // Calculate forces
    #pragma omp parallel for
    for (int i = 0; i < nplanets; i++) {
@@ -70,19 +62,16 @@ Planet* next(Planet* planets) {
       }
       
       // Update velocity
-      nextplanets[i].vx += vx_acc;
-      nextplanets[i].vy += vy_acc;
+      planets[i].vx += vx_acc;
+      planets[i].vy += vy_acc;
    }
    
    // Update positions
    #pragma omp parallel for
    for (int i = 0; i < nplanets; i++) {
-      nextplanets[i].x += dt * nextplanets[i].vx;
-      nextplanets[i].y += dt * nextplanets[i].vy;
+    planets[i].x += dt * planets[i].vx;
+    planets[i].y += dt * planets[i].vy;
    }
-   
-   free(planets);
-   return nextplanets;
 }
 
 int main(int argc, const char** argv){
@@ -111,7 +100,7 @@ int main(int argc, const char** argv){
    struct timeval start, end;
    gettimeofday(&start, NULL);
    for (int i=0; i<timesteps; i++) {
-      planets = next(planets);
+      next(planets);
       // printf("x=%f y=%f vx=%f vy=%f\n", planets[nplanets-1].x, planets[nplanets-1].y, planets[nplanets-1].vx, planets[nplanets-1].vy);
    }
    gettimeofday(&end, NULL);
