@@ -268,9 +268,8 @@ int main(int argc, const char** argv){
    nplanets  = atoi(argv[1]);
    timesteps = atoi(argv[2]);
 
-   // We'll use your original dt and G
    dt = 0.001;
-   G  = 6.6743;  // now we actually incorporate it properly
+   G  = 6.6743;
 
    // Allocate initial planet array
    Planet* planets = (Planet*)malloc(sizeof(Planet) * nplanets);
