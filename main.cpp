@@ -7,6 +7,21 @@
 #define dt 0.001
 #define Gdt (G * dt)
 
+double fast_rsqrt(double number) {
+    long i;
+    double x2, y;
+    const double threehalfs = 1.5;
+
+    x2 = number * 0.5;
+    y = number;
+    i = *(long*)&y;
+    i = 0x5fe6eb50c7b537a9 - (i >> 1);
+    y = *(double*)&i;
+    y = y * (threehalfs - (x2 * y * y));
+
+    return y;
+}
+
 float tdiff(struct timeval *start, struct timeval *end) {
   return (end->tv_sec - start->tv_sec) + 1e-6 * (end->tv_usec - start->tv_usec);
 }
@@ -204,24 +219,25 @@ void addForce(Node* node, Planet* p, double* fx, double* fy) {
     // OR if the region is "small enough" from p's perspective
     double dx = node->cmx - p->x;
     double dy = node->cmy - p->y;
-    double dist = sqrt(dx*dx + dy*dy + EPS);
+    double distSquared = (dx*dx + dy*dy + EPS);
+    double invDist = fast_rsqrt(distSquared);
 
     // "Size" of the region (largest dimension)
     double regionSize = (node->xMax - node->xMin);
     // Barnes-Hut criterion
-    if ((node->hasPlanet && node->mass > 0) || (regionSize / dist < THETA)) {
+    if ((node->hasPlanet && node->mass > 0) || (regionSize * invDist < THETA)) {
         // Treat this entire node as a single body
         // Gravitational force: F = G * (m1*m2) / r^2
         // direction = (dx/dist, dy/dist)
         // => acceleration on p: a = F/m1 = G * m2 / r^2
         // => dvx = dt * a_x = dt * ( G * node->mass * dx / r^3 )
-        double F = (G * p->mass * node->mass) / (dist*dist);
+        double F = (G * p->mass * node->mass) * (invDist * invDist);
         // We only need the portion that goes into planet p's acceleration
         // so effectively: F / p->mass => G * node->mass / dist^2
         // but let's keep it explicit:
 
-        double ax = F * (dx / dist) / p->mass; 
-        double ay = F * (dy / dist) / p->mass;
+        double ax = F * (dx * invDist) / p->mass; 
+        double ay = F * (dy * invDist) / p->mass;
 
         // accumulate into fx, fy
         *fx += ax;
