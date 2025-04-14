@@ -308,9 +308,10 @@ int main(int argc, const char** argv){
    // Time it
    struct timeval start, end;
    gettimeofday(&start, NULL);
-   Node* root;
+   Node* root = nullptr;
    for (int i = 0; i < timesteps; i++) {
     if (i % 1000 == 0) {
+        freeTree(root);
         root = buildQuadTree(planets, nplanets);
     }
     nextBarnesHut(planets, root);
