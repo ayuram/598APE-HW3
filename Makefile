@@ -10,8 +10,3 @@ all:
 
 clean:
 	rm -f $(TARGET)
-
-flamegraph: all
-	perf stat -o $(PERF_REPORT) ./$(TARGET) 1000 5000
-	perf record -F 99 -g ./$(TARGET) 1000 5000
-	perf script | ~/Flamegraph/stackcollapse-perf.pl | ~/Flamegraph/flamegraph.pl > flamegraph.svg
