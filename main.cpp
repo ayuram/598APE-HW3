@@ -3,11 +3,20 @@
 #include <math.h>
 #include <sys/time.h>
 #include <omp.h>
+#include <time.h>
 
 #define G 6.6743
 #define dt 0.001
 #define Gdt (G * dt)
+#define EPS 1e-4  // Softening parameter to avoid divide-by-zero
 
+int nplanets;
+int timesteps;
+float THETA = 2.0;  // Opening angle for Barnes-Hut
+
+unsigned long long seed = 100;
+
+/* Fast inverse square root (single Newton-Raphson iteration). */
 double fast_rsqrt(double number) {
     long i;
     double x2, y;
@@ -19,157 +28,105 @@ double fast_rsqrt(double number) {
     i = 0x5fe6eb50c7b537a9 - (i >> 1);
     y = *(double*)&i;
     y = y * (threehalfs - (x2 * y * y));
-
     return y;
 }
 
+/* Time difference in seconds. */
 float tdiff(struct timeval *start, struct timeval *end) {
-  return (end->tv_sec - start->tv_sec) + 1e-6 * (end->tv_usec - start->tv_usec);
+    return (end->tv_sec - start->tv_sec) + 1e-6 * (end->tv_usec - start->tv_usec);
 }
 
-unsigned long long seed = 100;
-
+/* Simple random number generators. */
 unsigned long long randomU64() {
-  seed ^= (seed << 21);
-  seed ^= (seed >> 35);
-  seed ^= (seed << 4);
-  return seed;
+    seed ^= (seed << 21);
+    seed ^= (seed >> 35);
+    seed ^= (seed << 4);
+    return seed;
 }
 
 double randomDouble() {
-   unsigned long long next = randomU64();
-   next >>= (64 - 26);
-   unsigned long long next2 = randomU64();
-   next2 >>= (64 - 26);
-   return ((next << 27) + next2) / (double)(1LL << 53);
+    unsigned long long next = randomU64();
+    next >>= (64 - 26);
+    unsigned long long next2 = randomU64();
+    next2 >>= (64 - 26);
+    return ((next << 27) + next2) / (double)(1LL << 53);
 }
 
-int nplanets;
-int timesteps;
-float THETA = 2.0;  // Opening angle for Barnes-Hut
-#define EPS   1e-4  // Softening parameter to avoid divide-by-zero
-
-
+/* Planet and Quadtree node definitions. */
 typedef struct Planet {
-   double mass;
-   double x;
-   double y;
-   double vx;
-   double vy;
+    double mass;
+    double x, y;
+    double vx, vy;
 } Planet;
 
-// Each quadtree node covers a region [xMin,xMax] x [yMin,yMax].
 typedef struct Node {
-   // Bounding box of this node
-   double xMin, xMax;
-   double yMin, yMax;
-
-   // Total mass and center-of-mass (for the entire region)
-   double mass;
-   double cmx, cmy; // center of mass x,y
-
-   // If this node is a "leaf" containing exactly one planet, hasPlanet=1
-   int hasPlanet;
-   Planet p;
-
-   // Children (quad split): NW, NE, SW, SE
-   struct Node* nw;
-   struct Node* ne;
-   struct Node* sw;
-   struct Node* se;
+    double xMin, xMax, yMin, yMax;
+    double mass;
+    double cmx, cmy;
+    int hasPlanet;
+    Planet p;
+    struct Node *nw, *ne, *sw, *se;
 } Node;
 
-/* Create an empty node representing the bounding box [xMin,xMax] x [yMin,yMax]. */
+/* Quadtree helpers. */
 Node* createNode(double xMin, double xMax, double yMin, double yMax) {
     Node* node = (Node*)calloc(1, sizeof(Node));
-    node->xMin = xMin;  node->xMax = xMax;
-    node->yMin = yMin;  node->yMax = yMax;
-    node->mass = 0.0;   // will accumulate as we insert
-    node->cmx  = 0.0;
-    node->cmy  = 0.0;
-    // children are NULL initially
-    node->nw = node->ne = node->sw = node->se = NULL;
-    node->hasPlanet = 0;
+    node->xMin = xMin; node->xMax = xMax;
+    node->yMin = yMin; node->yMax = yMax;
     return node;
 }
 
-/* Subdivide a node into 4 child quadrants (nw, ne, sw, se). */
 void subdivide(Node* node) {
     double midX = 0.5 * (node->xMin + node->xMax);
     double midY = 0.5 * (node->yMin + node->yMax);
-
-    // Northwest
     node->nw = createNode(node->xMin, midX, midY, node->yMax);
-    // Northeast
     node->ne = createNode(midX, node->xMax, midY, node->yMax);
-    // Southwest
     node->sw = createNode(node->xMin, midX, node->yMin, midY);
-    // Southeast
     node->se = createNode(midX, node->xMax, node->yMin, midY);
 }
 
-/* Insert a planet p into the quadtree rooted at 'node'. */
 void insertPlanet(Node* node, Planet p) {
-    // If this node doesn't yet contain a planet and has no children, store p here
     if (node->hasPlanet == 0 && node->nw == NULL) {
         node->hasPlanet = 1;
         node->p = p;
         node->mass = p.mass;
-        node->cmx  = p.x;
-        node->cmy  = p.y;
+        node->cmx = p.x;
+        node->cmy = p.y;
         return;
     }
 
-    // Otherwise, if it already has a single planet but no children, we subdivide first
     if (node->nw == NULL && node->hasPlanet == 1) {
         subdivide(node);
-        // Insert the planet that was here into the correct child
         Planet old = node->p;
-        node->hasPlanet = 0;  // It's no longer a leaf
-        node->p.mass = 0;     // Clear out
-
+        node->hasPlanet = 0;
+        node->p.mass = 0;
         insertPlanet(node, old);
     }
 
-    // Now we know we have children. Insert 'p' into the correct quadrant
     double midX = 0.5 * (node->xMin + node->xMax);
     double midY = 0.5 * (node->yMin + node->yMax);
 
     if (p.x <= midX) {
-        if (p.y <= midY) {
-            // SW
-            insertPlanet(node->sw, p);
-        } else {
-            // NW
-            insertPlanet(node->nw, p);
-        }
+        if (p.y <= midY) insertPlanet(node->sw, p);
+        else insertPlanet(node->nw, p);
     } else {
-        if (p.y <= midY) {
-            // SE
-            insertPlanet(node->se, p);
-        } else {
-            // NE
-            insertPlanet(node->ne, p);
-        }
+        if (p.y <= midY) insertPlanet(node->se, p);
+        else insertPlanet(node->ne, p);
     }
 
-    // Update this node's mass & center-of-mass
     node->mass += p.mass;
-    node->cmx  += p.mass * p.x;
-    node->cmy  += p.mass * p.y;
+    node->cmx += p.mass * p.x;
+    node->cmy += p.mass * p.y;
 }
 
-/* A small BFS or DFS pass to finalize center-of-mass for internal nodes. */
 void finalizeNode(Node* node) {
     if (!node) return;
 
-    // If node->mass > 0, center of mass is (node->cmx / node->mass, node->cmy / node->mass).
     if (node->mass > 1e-12) {
         node->cmx /= node->mass;
         node->cmy /= node->mass;
     }
 
-    // Recurse
     finalizeNode(node->nw);
     finalizeNode(node->ne);
     finalizeNode(node->sw);
@@ -177,7 +134,6 @@ void finalizeNode(Node* node) {
 }
 
 Node* buildQuadTree(Planet* planets, int n) {
-    // 1) Find bounding box
     double xMin = planets[0].x, xMax = planets[0].x;
     double yMin = planets[0].y, yMax = planets[0].y;
 
@@ -188,60 +144,41 @@ Node* buildQuadTree(Planet* planets, int n) {
         if (planets[i].y > yMax) yMax = planets[i].y;
     }
 
-    // Expand bounding box a bit to avoid zero-size issues
     double dx = xMax - xMin;
     double dy = yMax - yMin;
-    // If all planets are nearly the same point, expand artificially
     if (dx < 1e-10) dx = 1e-2;
     if (dy < 1e-10) dy = 1e-2;
 
-    xMax = xMin + ((dx > dy) ? dx : dy); // keep it square
+    xMax = xMin + ((dx > dy) ? dx : dy);
     yMax = yMin + ((dx > dy) ? dx : dy);
 
-    // 2) Create root node
     Node* root = createNode(xMin, xMax, yMin, yMax);
 
-    // 3) Insert each planet
     for (int i = 0; i < n; i++) {
         insertPlanet(root, planets[i]);
     }
 
-    // 4) Finalize center of mass
     finalizeNode(root);
-
     return root;
 }
 
-/* Recursively compute the contribution of 'node' to the force on planet p. */
+/* Force computation. */
 void addForce(Node* node, Planet* p, double* fx, double* fy) {
     if (!node || node->mass < 1e-12) return;
 
     double dx = node->cmx - p->x;
     double dy = node->cmy - p->y;
-    double distSquared = (dx*dx + dy*dy + EPS);
+    double distSquared = (dx * dx + dy * dy + EPS);
     double invDist = fast_rsqrt(distSquared);
-
-    // "Size" of the region (largest dimension)
     double regionSize = (node->xMax - node->xMin);
-    // Barnes-Hut criterion
+
     if ((node->hasPlanet && node->mass > 0) || (regionSize * invDist < THETA)) {
-        // Treat this entire node as a single body
-        // Gravitational force: F = G * (m1*m2) / r^2
-        // direction = (dx/dist, dy/dist)
-        // => acceleration on p: a = F/m1 = G * m2 / r^2
-        // => dvx = dt * a_x = dt * ( G * node->mass * dx / r^3 )
-        double F = (G * p->mass * node->mass) * (invDist * invDist);
-        // We only need the portion that goes into planet p's acceleration
-        // so effectively: F / p->mass => G * node->mass / dist^2
         double invDist3 = invDist * invDist * invDist;
         double ax = G * node->mass * dx * invDist3;
         double ay = G * node->mass * dy * invDist3;
-
-        // accumulate into fx, fy
         *fx += ax;
         *fy += ay;
     } else {
-        // Recurse on children
         addForce(node->nw, p, fx, fy);
         addForce(node->ne, p, fx, fy);
         addForce(node->sw, p, fx, fy);
@@ -259,71 +196,124 @@ void freeTree(Node* node) {
 }
 
 void nextBarnesHut(Planet* planets, Node* root) {
-    //  For each planet, compute net force from the tree
-    //    Then update velocity & position
     #pragma omp parallel for
     for (int i = 0; i < nplanets; i++) {
-        double fx = 0.0, fy = 0.0; // accumulators for acceleration
+        double fx = 0.0, fy = 0.0;
         addForce(root, &planets[i], &fx, &fy);
 
-        // Update velocity
         planets[i].vx += dt * fx;
         planets[i].vy += dt * fy;
-
-        // Update position
-        planets[i].x  += dt * planets[i].vx;
-        planets[i].y  += dt * planets[i].vy;
+        planets[i].x += dt * planets[i].vx;
+        planets[i].y += dt * planets[i].vy;
     }
 }
 
-int main(int argc, const char** argv){
-   if (argc < 3) {
-      printf("Usage: %s <nplanets> <timesteps>\n", argv[0]);
-      return 1;
-   }
-   nplanets  = atoi(argv[1]);
-   timesteps = atoi(argv[2]);
-   // if a third argument is given, use it as THETA
+/* Main simulation driver. */
+int main(int argc, const char** argv) {
+    if (argc < 3) {
+        printf("Usage: %s <nplanets> <timesteps>\n", argv[0]);
+        return 1;
+    }
+
+    nplanets = atoi(argv[1]);
+    timesteps = atoi(argv[2]);
+
     if (argc > 3) {
         THETA = atof(argv[3]);
     }
 
-    // print max threads with omp
     int max_threads = omp_get_max_threads();
     printf("Max threads: %d\n", max_threads);
 
+    Planet* planets = (Planet*)malloc(sizeof(Planet) * nplanets);
 
-   // Allocate initial planet array
-   Planet* planets = (Planet*)malloc(sizeof(Planet) * nplanets);
-
-   // Random init
-   for (int i=0; i<nplanets; i++) {
-    planets[i].mass = randomDouble() * 10 + 0.2;
-    planets[i].x    = ( randomDouble() - 0.5 ) * 100 * pow(1 + nplanets, 0.4);
-    planets[i].y    = ( randomDouble() - 0.5 ) * 100 * pow(1 + nplanets, 0.4);
-    planets[i].vx   = randomDouble() * 5 - 2.5;
-    planets[i].vy   = randomDouble() * 5 - 2.5;
-   }
-
-   // Time it
-   struct timeval start, end;
-   gettimeofday(&start, NULL);
-   Node* root = nullptr;
-   for (int i = 0; i < timesteps; i++) {
-    if (i % 1000 == 0) {
-        freeTree(root);
-        root = buildQuadTree(planets, nplanets);
+    for (int i = 0; i < nplanets; i++) {
+        planets[i].mass = randomDouble() * 10 + 0.2;
+        planets[i].x = (randomDouble() - 0.5) * 100 * pow(1 + nplanets, 0.4);
+        planets[i].y = (randomDouble() - 0.5) * 100 * pow(1 + nplanets, 0.4);
+        planets[i].vx = randomDouble() * 5 - 2.5;
+        planets[i].vy = randomDouble() * 5 - 2.5;
     }
-    nextBarnesHut(planets, root);
-   }
-   freeTree(root);
 
-   gettimeofday(&end, NULL);
-   printf("Total time %0.6f seconds, final location %f %f\n",
-         tdiff(&start, &end), planets[nplanets-1].x, planets[nplanets-1].y);
+    srand(time(NULL));
 
-   // Clean up
-   free(planets);
+    double rebuildThreshold = 0.1;
+    double init_xMin, init_xMax, init_yMin, init_yMax;
+    init_xMin = init_xMax = planets[0].x;
+    init_yMin = init_yMax = planets[0].y;
 
-   return 0;
+    for (int i = 1; i < nplanets; i++) {
+        if (planets[i].x < init_xMin) init_xMin = planets[i].x;
+        if (planets[i].x > init_xMax) init_xMax = planets[i].x;
+        if (planets[i].y < init_yMin) init_yMin = planets[i].y;
+        if (planets[i].y > init_yMax) init_yMax = planets[i].y;
+    }
+
+    double dx = init_xMax - init_xMin;
+    double dy = init_yMax - init_yMin;
+    if (dx < 1e-10) dx = 1e-2;
+    if (dy < 1e-10) dy = 1e-2;
+    double baseSize = (dx > dy) ? dx : dy;
+    init_xMax = init_xMin + baseSize;
+    init_yMax = init_yMin + baseSize;
+
+    struct timeval start, end;
+    gettimeofday(&start, NULL);
+
+    Node* root = buildQuadTree(planets, nplanets);
+    int rebuildCount = 0;
+
+    for (int t = 0; t < timesteps; t++) {
+        nextBarnesHut(planets, root);
+
+        if (t % 10 == 0) {
+            int needsRebuild = 0;
+            int sampleSize = nplanets / 20;
+            if (sampleSize < 5) sampleSize = 5;
+
+            for (int s = 0; s < sampleSize; s++) {
+                int j = rand() % nplanets;
+                if (planets[j].x < init_xMin - rebuildThreshold * baseSize ||
+                    planets[j].x > init_xMax + rebuildThreshold * baseSize ||
+                    planets[j].y < init_yMin - rebuildThreshold * baseSize ||
+                    planets[j].y > init_yMax + rebuildThreshold * baseSize) {
+                    needsRebuild = 1;
+                    break;
+                }
+            }
+
+            if (needsRebuild) {
+                rebuildCount++;
+                freeTree(root);
+                root = buildQuadTree(planets, nplanets);
+
+                init_xMin = init_xMax = planets[0].x;
+                init_yMin = init_yMax = planets[0].y;
+                for (int j = 1; j < nplanets; j++) {
+                    if (planets[j].x < init_xMin) init_xMin = planets[j].x;
+                    if (planets[j].x > init_xMax) init_xMax = planets[j].x;
+                    if (planets[j].y < init_yMin) init_yMin = planets[j].y;
+                    if (planets[j].y > init_yMax) init_yMax = planets[j].y;
+                }
+
+                dx = init_xMax - init_xMin;
+                dy = init_yMax - init_yMin;
+                if (dx < 1e-10) dx = 1e-2;
+                if (dy < 1e-10) dy = 1e-2;
+                baseSize = (dx > dy) ? dx : dy;
+                init_xMax = init_xMin + baseSize;
+                init_yMax = init_yMin + baseSize;
+            }
+        }
+    }
+
+    freeTree(root);
+    gettimeofday(&end, NULL);
+
+    printf("Total tree rebuilds: %d\n", rebuildCount);
+    printf("Total time %0.6f seconds, final location %f %f\n",
+        tdiff(&start, &end), planets[nplanets-1].x, planets[nplanets-1].y);
+
+    free(planets);
+    return 0;
 }
