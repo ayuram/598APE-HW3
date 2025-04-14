@@ -276,11 +276,11 @@ int main(int argc, const char** argv){
 
    // Random init
    for (int i=0; i<nplanets; i++) {
-   planets[i].mass = randomDouble() * 10 + 0.2;
-   planets[i].x    = ( randomDouble() - 0.5 ) * 100 * pow(1 + nplanets, 0.4);
-   planets[i].y    = ( randomDouble() - 0.5 ) * 100 * pow(1 + nplanets, 0.4);
-   planets[i].vx   = randomDouble() * 5 - 2.5;
-   planets[i].vy   = randomDouble() * 5 - 2.5;
+    planets[i].mass = randomDouble() * 10 + 0.2;
+    planets[i].x    = ( randomDouble() - 0.5 ) * 100 * pow(1 + nplanets, 0.4);
+    planets[i].y    = ( randomDouble() - 0.5 ) * 100 * pow(1 + nplanets, 0.4);
+    planets[i].vx   = randomDouble() * 5 - 2.5;
+    planets[i].vy   = randomDouble() * 5 - 2.5;
    }
 
    // Time it
@@ -288,7 +288,7 @@ int main(int argc, const char** argv){
    gettimeofday(&start, NULL);
    Node* root = buildQuadTree(planets, nplanets);
    for (int i = 0; i < timesteps; i++) {
-   nextBarnesHut(planets, root);
+    nextBarnesHut(planets, root);
    }
    freeTree(root);
 
