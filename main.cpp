@@ -42,36 +42,29 @@ double G;
 double Gdt;
 
 void next(Planet* planets) {
-   // Calculate forces
-   #pragma omp parallel for
-   for (int i = 0; i < nplanets; i++) {
-      double vx_acc = 0.0;
-      double vy_acc = 0.0;
-      
-      for (int j = 0; j < nplanets; j++) {
-         if (i == j) continue; // Skip self interaction
-         
-         double dx = planets[j].x - planets[i].x;
-         double dy = planets[j].y - planets[i].y;
-         double distSqr = dx*dx + dy*dy + 0.0001;
-         double distSixth = distSqr * distSqr * distSqr;
-         double force = Gdt * planets[j].mass / sqrt(distSixth);
-         
-         vx_acc += dx * force;
-         vy_acc += dy * force;
-      }
-      
-      // Update velocity
-      planets[i].vx += vx_acc;
-      planets[i].vy += vy_acc;
-   }
-   
-   // Update positions
-   #pragma omp parallel for
-   for (int i = 0; i < nplanets; i++) {
-    planets[i].x += dt * planets[i].vx;
-    planets[i].y += dt * planets[i].vy;
-   }
+    #pragma omp parallel for
+    for (int i = 0; i < nplanets; i++) {
+        double ax = 0.0, ay = 0.0; // Accumulated acceleration
+        for (int j = 0; j < nplanets; j++) {
+            if (i == j) continue; // No self-force
+
+            double dx = planets[j].x - planets[i].x;
+            double dy = planets[j].y - planets[i].y;
+            double distSqr = dx * dx + dy * dy + 0.0001;
+            double dist = sqrt(distSqr);
+            double force = G * planets[j].mass / (distSqr);
+
+            ax += force * dx / dist;
+            ay += force * dy / dist;
+        }
+        planets[i].vx += dt * ax;
+        planets[i].vy += dt * ay;
+    }
+    #pragma omp parallel for
+    for (int i = 0; i < nplanets; i++) {
+        planets[i].x += dt * planets[i].vx;
+        planets[i].y += dt * planets[i].vy;
+    }
 }
 
 int main(int argc, const char** argv){
