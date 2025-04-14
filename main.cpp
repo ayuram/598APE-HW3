@@ -40,16 +40,7 @@ int timesteps;
 double dt;
 double G;
 
-Planet* next(Planet* planets) {
-    Planet* nextplanets = (Planet*)malloc(sizeof(Planet) * nplanets);
-    for (int i = 0; i < nplanets; i++) {
-        nextplanets[i].vx = planets[i].vx;
-        nextplanets[i].vy = planets[i].vy;
-        nextplanets[i].mass = planets[i].mass;
-        nextplanets[i].x = planets[i].x;
-        nextplanets[i].y = planets[i].y;
-    }
-
+void next(Planet* planets) {
     #pragma omp parallel for
     for (int i = 0; i < nplanets; i++) {
         for (int j = i + 1; j < nplanets; j++) {
@@ -64,23 +55,20 @@ Planet* next(Planet* planets) {
             double fy = dy * invDist3 * planets[i].mass * planets[j].mass;
 
             // Apply force to planet i
-            nextplanets[i].vx += dt * fx / planets[i].mass;
-            nextplanets[i].vy += dt * fy / planets[i].mass;
+            planets[i].vx += dt * fx / planets[i].mass;
+            planets[i].vy += dt * fy / planets[i].mass;
 
             // Apply opposite force to planet j
-            nextplanets[j].vx -= dt * fx / planets[j].mass;
-            nextplanets[j].vy -= dt * fy / planets[j].mass;
+            planets[j].vx -= dt * fx / planets[j].mass;
+            planets[j].vy -= dt * fy / planets[j].mass;
         }
     }
     
     #pragma omp parallel for
     for (int i = 0; i < nplanets; i++) {
-        nextplanets[i].x += dt * nextplanets[i].vx;
-        nextplanets[i].y += dt * nextplanets[i].vy;
+        planets[i].x += dt * planets[i].vx;
+        planets[i].y += dt * planets[i].vy;
     }
-
-    free(planets);
-    return nextplanets;
 }
 
 int main(int argc, const char** argv){
@@ -109,7 +97,7 @@ int main(int argc, const char** argv){
    struct timeval start, end;
    gettimeofday(&start, NULL);
    for (int i=0; i<timesteps; i++) {
-      planets = next(planets);
+      next(planets);
       // printf("x=%f y=%f vx=%f vy=%f\n", planets[nplanets-1].x, planets[nplanets-1].y, planets[nplanets-1].vx, planets[nplanets-1].vy);
    }
    gettimeofday(&end, NULL);
