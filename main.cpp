@@ -40,30 +40,36 @@ double dt;
 double G;
 
 Planet* next(Planet* planets) {
-   Planet* nextplanets = (Planet*)malloc(sizeof(Planet) * nplanets);
-   for (int i=0; i<nplanets; i++) {
-      nextplanets[i].vx = planets[i].vx;
-      nextplanets[i].vy = planets[i].vy;
-      nextplanets[i].mass = planets[i].mass;
-      nextplanets[i].x = planets[i].x;
-      nextplanets[i].y = planets[i].y;
-   }
+    Planet* nextplanets = (Planet*)malloc(sizeof(Planet) * nplanets);
+    for (int i = 0; i < nplanets; i++) {
+        nextplanets[i] = planets[i]; // Copy initial values
+    }
 
-   for (int i=0; i<nplanets; i++) {
-      for (int j=0; j<nplanets; j++) {
-         double dx = planets[j].x - planets[i].x;
-         double dy = planets[j].y - planets[i].y;
-         double distSqr = dx*dx + dy*dy + 0.0001;
-         double invDist = planets[i].mass * planets[j].mass / sqrt(distSqr);
-         double invDist3 = invDist * invDist * invDist;
-         nextplanets[i].vx += dt * dx * invDist3;
-         nextplanets[i].vy += dt * dy * invDist3;
-      }
-      nextplanets[i].x += dt * nextplanets[i].vx;
-      nextplanets[i].y += dt * nextplanets[i].vy;
-   }
-   free(planets);
-   return nextplanets;
+    for (int i = 0; i < nplanets; i++) {
+        double ax = 0.0, ay = 0.0; // Accumulated acceleration
+        for (int j = 0; j < nplanets; j++) {
+            if (i == j) continue; // No self-force
+
+            double dx = planets[j].x - planets[i].x;
+            double dy = planets[j].y - planets[i].y;
+            double distSqr = dx * dx + dy * dy + 0.0001;
+            double dist = sqrt(distSqr);
+            double force = G * planets[j].mass / (distSqr);
+
+            ax += force * dx / dist;
+            ay += force * dy / dist;
+        }
+        nextplanets[i].vx += dt * ax;
+        nextplanets[i].vy += dt * ay;
+    }
+
+    for (int i = 0; i < nplanets; i++) {
+        nextplanets[i].x += dt * nextplanets[i].vx;
+        nextplanets[i].y += dt * nextplanets[i].vy;
+    }
+
+    free(planets);
+    return nextplanets;
 }
 
 int main(int argc, const char** argv){
