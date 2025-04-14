@@ -1,22 +1,22 @@
-# started on Mon Apr 14 13:08:55 2025
+# started on Mon Apr 14 13:10:05 2025
 
 
  Performance counter stats for './main.exe 1000 5000':
 
-         29,577.26 msec task-clock                       #   63.648 CPUs utilized             
-                28      context-switches                 #    0.947 /sec                      
+         34,523.19 msec task-clock                       #   63.693 CPUs utilized             
+                32      context-switches                 #    0.927 /sec                      
                  0      cpu-migrations                   #    0.000 /sec                      
-               288      page-faults                      #    9.737 /sec                      
-   137,414,284,181      cycles                           #    4.646 GHz                       
-       449,829,683      stalled-cycles-frontend          #    0.33% frontend cycles idle      
-   146,266,314,122      instructions                     #    1.06  insn per cycle            
+               292      page-faults                      #    8.458 /sec                      
+   161,656,969,578      cycles                           #    4.683 GHz                       
+       452,580,557      stalled-cycles-frontend          #    0.28% frontend cycles idle      
+   146,296,054,617      instructions                     #    0.90  insn per cycle            
                                                   #    0.00  stalled cycles per insn   
-    11,745,010,852      branches                         #  397.096 M/sec                     
-        19,296,825      branch-misses                    #    0.16% of all branches           
+    11,749,127,559      branches                         #  340.326 M/sec                     
+        20,138,193      branch-misses                    #    0.17% of all branches           
 
-       0.464704094 seconds time elapsed
+       0.542024402 seconds time elapsed
 
-      29.521570000 seconds user
-       0.080922000 seconds sys
+      34.487823000 seconds user
+       0.009990000 seconds sys
 
 
