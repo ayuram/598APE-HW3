@@ -234,10 +234,9 @@ void addForce(Node* node, Planet* p, double* fx, double* fy) {
         double F = (G * p->mass * node->mass) * (invDist * invDist);
         // We only need the portion that goes into planet p's acceleration
         // so effectively: F / p->mass => G * node->mass / dist^2
-        // but let's keep it explicit:
-
-        double ax = F * (dx * invDist) / p->mass; 
-        double ay = F * (dy * invDist) / p->mass;
+        double invDist3 = invDist * invDist * invDist;
+        double ax = G * node->mass * dx * invDist3;
+        double ay = G * node->mass * dy * invDist3;
 
         // accumulate into fx, fy
         *fx += ax;
