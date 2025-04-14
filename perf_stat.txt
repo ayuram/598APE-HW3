@@ -1,22 +1,22 @@
-# started on Mon Apr 14 13:03:36 2025
+# started on Mon Apr 14 13:08:55 2025
 
 
  Performance counter stats for './main.exe 1000 5000':
 
-         29,189.57 msec task-clock                       #   63.637 CPUs utilized             
-                42      context-switches                 #    1.439 /sec                      
-                 1      cpu-migrations                   #    0.034 /sec                      
-               291      page-faults                      #    9.969 /sec                      
-   135,204,091,570      cycles                           #    4.632 GHz                       
-       430,060,083      stalled-cycles-frontend          #    0.32% frontend cycles idle      
-   145,996,657,924      instructions                     #    1.08  insn per cycle            
+         29,577.26 msec task-clock                       #   63.648 CPUs utilized             
+                28      context-switches                 #    0.947 /sec                      
+                 0      cpu-migrations                   #    0.000 /sec                      
+               288      page-faults                      #    9.737 /sec                      
+   137,414,284,181      cycles                           #    4.646 GHz                       
+       449,829,683      stalled-cycles-frontend          #    0.33% frontend cycles idle      
+   146,266,314,122      instructions                     #    1.06  insn per cycle            
                                                   #    0.00  stalled cycles per insn   
-    11,668,047,774      branches                         #  399.733 M/sec                     
-        19,234,960      branch-misses                    #    0.16% of all branches           
+    11,745,010,852      branches                         #  397.096 M/sec                     
+        19,296,825      branch-misses                    #    0.16% of all branches           
 
-       0.458690105 seconds time elapsed
+       0.464704094 seconds time elapsed
 
-      29.125789000 seconds user
-       0.057935000 seconds sys
+      29.521570000 seconds user
+       0.080922000 seconds sys
 
 
