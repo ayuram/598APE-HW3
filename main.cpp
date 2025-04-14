@@ -3,6 +3,10 @@
 #include <math.h>
 #include <sys/time.h>
 
+#define G 6.6743
+#define dt 0.001
+#define Gdt (G * dt)
+
 float tdiff(struct timeval *start, struct timeval *end) {
   return (end->tv_sec - start->tv_sec) + 1e-6 * (end->tv_usec - start->tv_usec);
 }
@@ -26,8 +30,6 @@ double randomDouble() {
 
 int nplanets;
 int timesteps;
-double dt;
-double G;          // Gravitational constant (we’ll *actually use* it now!)
 #define THETA 0.5   // Opening angle for Barnes-Hut
 #define EPS   1e-4  // Softening parameter to avoid divide-by-zero
 
@@ -267,10 +269,6 @@ int main(int argc, const char** argv){
    }
    nplanets  = atoi(argv[1]);
    timesteps = atoi(argv[2]);
-
-   // We'll use your original dt and G
-   dt = 0.001;
-   G  = 6.6743;  // now we actually incorporate it properly
 
    // Allocate initial planet array
    Planet* planets = (Planet*)malloc(sizeof(Planet) * nplanets);
