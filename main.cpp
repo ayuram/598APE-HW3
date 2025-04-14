@@ -4,6 +4,21 @@
 
 #include <sys/time.h>
 
+double fast_rsqrt(double number) {
+    long i;
+    double x2, y;
+    const double threehalfs = 1.5;
+
+    x2 = number * 0.5;
+    y = number;
+    i = *(long*)&y;
+    i = 0x5fe6eb50c7b537a9 - (i >> 1);
+    y = *(double*)&i;
+    y = y * (threehalfs - (x2 * y * y));
+
+    return y;
+}
+
 float tdiff(struct timeval *start, struct timeval *end) {
   return (end->tv_sec-start->tv_sec) + 1e-6*(end->tv_usec-start->tv_usec);
 }
@@ -53,11 +68,13 @@ Planet* next(Planet* planets) {
             double dx = planets[j].x - planets[i].x;
             double dy = planets[j].y - planets[i].y;
             double distSqr = dx * dx + dy * dy + 0.0001;
-            double dist = sqrt(distSqr);
-            double force = G * planets[j].mass / (distSqr);
+            double invDist = fast_rsqrt(distSqr); // Fast inverse square root
+            double invDist3 = invDist * invDist * invDist; // Equivalent to 1 / dist^3
 
-            ax += force * dx / dist;
-            ay += force * dy / dist;
+            double force = G * planets[j].mass * invDist3;
+
+            ax += force * dx;
+            ay += force * dy;
         }
         nextplanets[i].vx += dt * ax;
         nextplanets[i].vy += dt * ay;
