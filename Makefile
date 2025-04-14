@@ -1,5 +1,5 @@
 CXX := g++
-CXXFLAGS := -O3 -g -fno-omit-frame-pointer -Werror
+CXXFLAGS := -O3 -g -fno-omit-frame-pointer -Werror -fopenmp
 LDFLAGS := -lm
 TARGET := main.exe
 CPP_FILES := $(wildcard *.cpp)

@@ -3,6 +3,7 @@
 #include<math.h>
 
 #include <sys/time.h>
+#include <omp.h>
 
 float tdiff(struct timeval *start, struct timeval *end) {
   return (end->tv_sec-start->tv_sec) + 1e-6*(end->tv_usec-start->tv_usec);
@@ -49,6 +50,7 @@ Planet* next(Planet* planets) {
         nextplanets[i].y = planets[i].y;
     }
 
+    #pragma omp parallel for
     for (int i = 0; i < nplanets; i++) {
         for (int j = i + 1; j < nplanets; j++) {
             double dx = planets[j].x - planets[i].x;
@@ -70,7 +72,8 @@ Planet* next(Planet* planets) {
             nextplanets[j].vy -= dt * fy / planets[j].mass;
         }
     }
-
+    
+    #pragma omp parallel for
     for (int i = 0; i < nplanets; i++) {
         nextplanets[i].x += dt * nextplanets[i].vx;
         nextplanets[i].y += dt * nextplanets[i].vy;
@@ -87,6 +90,10 @@ int main(int argc, const char** argv){
    }
    nplanets = atoi(argv[1]);
    timesteps = atoi(argv[2]);
+   // print number of threads
+   int nthreads = omp_get_max_threads();
+   printf("Number of threads: %d\n", nthreads);
+
    dt = 0.001;
    G = 6.6743;
 
