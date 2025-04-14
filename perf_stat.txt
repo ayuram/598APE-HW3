@@ -1,18 +1,22 @@
-# started on Mon Apr 14 12:03:03 2025
+# started on Mon Apr 14 13:42:55 2025
 
 
  Performance counter stats for './main.exe 1000 5000':
 
-   728,379,922,048      cycles                                                                  (83.33%)
-   120,643,716,710      instructions                     #    0.17  insn per cycle              (83.32%)
-    26,932,458,476      branches                                                                (83.34%)
-        29,434,365      branch-misses                    #    0.11% of all branches             (83.34%)
-     2,617,977,904      cache-references                                                        (83.34%)
-       431,569,039      cache-misses                     #   16.48% of all cache refs           (83.34%)
+        306,226.37 msec task-clock                       #   63.960 CPUs utilized             
+               259      context-switches                 #    0.846 /sec                      
+                20      cpu-migrations                   #    0.065 /sec                      
+               396      page-faults                      #    1.293 /sec                      
+ 1,435,034,398,870      cycles                           #    4.686 GHz                       
+     2,165,222,938      stalled-cycles-frontend          #    0.15% frontend cycles idle      
+   194,810,787,885      instructions                     #    0.14  insn per cycle            
+                                                  #    0.01  stalled cycles per insn   
+    48,041,317,962      branches                         #  156.882 M/sec                     
+        48,706,324      branch-misses                    #    0.10% of all branches           
 
-       4.881849652 seconds time elapsed
+       4.787808360 seconds time elapsed
 
-     156.128288000 seconds user
-       0.003999000 seconds sys
+     306.181193000 seconds user
+       0.070994000 seconds sys
 
 
