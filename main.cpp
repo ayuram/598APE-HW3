@@ -309,7 +309,7 @@ int main(int argc, const char** argv){
    freeTree(root);
 
    gettimeofday(&end, NULL);
-   printf("Total time = %0.6f seconds, final location = (%f, %f)\n",
+   printf("Total time = %0.6f seconds, final location %f %f\n",
          tdiff(&start, &end), planets[nplanets-1].x, planets[nplanets-1].y);
 
    // Clean up
