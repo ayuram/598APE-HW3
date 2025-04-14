@@ -242,80 +242,62 @@ void freeTree(Node* node) {
     free(node);
 }
 
-Planet* nextBarnesHut(Planet* planets) {
-    Planet* nextplanets = (Planet*)malloc(sizeof(Planet) * nplanets);
-
-    // 1) Build quad tree
-    Node* root = buildQuadTree(planets, nplanets);
-
-    // 2) For each planet, compute net force from the tree
+void nextBarnesHut(Planet* planets, Node* root) {
+    //  For each planet, compute net force from the tree
     //    Then update velocity & position
     for (int i = 0; i < nplanets; i++) {
-        // Copy over old data first
-        nextplanets[i].mass = planets[i].mass;
-        nextplanets[i].x    = planets[i].x;
-        nextplanets[i].y    = planets[i].y;
-        nextplanets[i].vx   = planets[i].vx;
-        nextplanets[i].vy   = planets[i].vy;
-
         double fx = 0.0, fy = 0.0; // accumulators for acceleration
-        addForce(root, &nextplanets[i], &fx, &fy);
+        addForce(root, &planets[i], &fx, &fy);
 
-        // 3) Update velocity
-        nextplanets[i].vx += dt * fx;
-        nextplanets[i].vy += dt * fy;
+        // Update velocity
+        planets[i].vx += dt * fx;
+        planets[i].vy += dt * fy;
 
         // Update position
-        nextplanets[i].x  += dt * nextplanets[i].vx;
-        nextplanets[i].y  += dt * nextplanets[i].vy;
+        planets[i].x  += dt * planets[i].vx;
+        planets[i].y  += dt * planets[i].vy;
     }
-
-    // 4) Free old array & the quadtree
-    free(planets);
-    freeTree(root);
-
-    // 5) Return next array
-    return nextplanets;
 }
 
 int main(int argc, const char** argv){
-    if (argc < 3) {
-        printf("Usage: %s <nplanets> <timesteps>\n", argv[0]);
-        return 1;
-    }
-    nplanets  = atoi(argv[1]);
-    timesteps = atoi(argv[2]);
+   if (argc < 3) {
+      printf("Usage: %s <nplanets> <timesteps>\n", argv[0]);
+      return 1;
+   }
+   nplanets  = atoi(argv[1]);
+   timesteps = atoi(argv[2]);
 
-    // We'll use your original dt and G
-    dt = 0.001;
-    G  = 6.6743;  // now we actually incorporate it properly
+   // We'll use your original dt and G
+   dt = 0.001;
+   G  = 6.6743;  // now we actually incorporate it properly
 
-    // Allocate initial planet array
-    Planet* planets = (Planet*)malloc(sizeof(Planet) * nplanets);
+   // Allocate initial planet array
+   Planet* planets = (Planet*)malloc(sizeof(Planet) * nplanets);
 
-    // Random init
-    for (int i=0; i<nplanets; i++) {
-        planets[i].mass = randomDouble() * 10 + 0.2;
-        planets[i].x    = ( randomDouble() - 0.5 ) * 100 * pow(1 + nplanets, 0.4);
-        planets[i].y    = ( randomDouble() - 0.5 ) * 100 * pow(1 + nplanets, 0.4);
-        planets[i].vx   = randomDouble() * 5 - 2.5;
-        planets[i].vy   = randomDouble() * 5 - 2.5;
-    }
+   // Random init
+   for (int i=0; i<nplanets; i++) {
+   planets[i].mass = randomDouble() * 10 + 0.2;
+   planets[i].x    = ( randomDouble() - 0.5 ) * 100 * pow(1 + nplanets, 0.4);
+   planets[i].y    = ( randomDouble() - 0.5 ) * 100 * pow(1 + nplanets, 0.4);
+   planets[i].vx   = randomDouble() * 5 - 2.5;
+   planets[i].vy   = randomDouble() * 5 - 2.5;
+   }
 
-    // Time it
-    struct timeval start, end;
-    gettimeofday(&start, NULL);
+   // Time it
+   struct timeval start, end;
+   gettimeofday(&start, NULL);
+   Node* root = buildQuadTree(planets, nplanets);
+   for (int i = 0; i < timesteps; i++) {
+   nextBarnesHut(planets, root);
+   }
+   freeTree(root);
 
-    for (int i = 0; i < timesteps; i++) {
-        planets = nextBarnesHut(planets);
-    }
+   gettimeofday(&end, NULL);
+   printf("Total time = %0.6f seconds, final location = (%f, %f)\n",
+         tdiff(&start, &end), planets[nplanets-1].x, planets[nplanets-1].y);
 
-    gettimeofday(&end, NULL);
-    printf("Total time = %0.6f seconds, final location = (%f, %f)\n",
-           tdiff(&start, &end), planets[nplanets-1].x, planets[nplanets-1].y);
+   // Clean up
+   free(planets);
 
-    // Clean up
-    free(planets);
-
-    return 0;
+   return 0;
 }
