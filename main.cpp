@@ -40,30 +40,44 @@ double dt;
 double G;
 
 Planet* next(Planet* planets) {
-   Planet* nextplanets = (Planet*)malloc(sizeof(Planet) * nplanets);
-   for (int i=0; i<nplanets; i++) {
-      nextplanets[i].vx = planets[i].vx;
-      nextplanets[i].vy = planets[i].vy;
-      nextplanets[i].mass = planets[i].mass;
-      nextplanets[i].x = planets[i].x;
-      nextplanets[i].y = planets[i].y;
-   }
+    Planet* nextplanets = (Planet*)malloc(sizeof(Planet) * nplanets);
+    for (int i = 0; i < nplanets; i++) {
+        nextplanets[i].vx = planets[i].vx;
+        nextplanets[i].vy = planets[i].vy;
+        nextplanets[i].mass = planets[i].mass;
+        nextplanets[i].x = planets[i].x;
+        nextplanets[i].y = planets[i].y;
+    }
 
-   for (int i=0; i<nplanets; i++) {
-      for (int j=0; j<nplanets; j++) {
-         double dx = planets[j].x - planets[i].x;
-         double dy = planets[j].y - planets[i].y;
-         double distSqr = dx*dx + dy*dy + 0.0001;
-         double invDist = planets[i].mass * planets[j].mass / sqrt(distSqr);
-         double invDist3 = invDist * invDist * invDist;
-         nextplanets[i].vx += dt * dx * invDist3;
-         nextplanets[i].vy += dt * dy * invDist3;
-      }
-      nextplanets[i].x += dt * nextplanets[i].vx;
-      nextplanets[i].y += dt * nextplanets[i].vy;
-   }
-   free(planets);
-   return nextplanets;
+    for (int i = 0; i < nplanets; i++) {
+        for (int j = i + 1; j < nplanets; j++) {
+            double dx = planets[j].x - planets[i].x;
+            double dy = planets[j].y - planets[i].y;
+            double distSqr = dx * dx + dy * dy + 0.0001;
+            double invDist = 1.0 / sqrt(distSqr);
+            double invDist3 = invDist * invDist * invDist;
+
+            // Force components
+            double fx = dx * invDist3 * planets[i].mass * planets[j].mass;
+            double fy = dy * invDist3 * planets[i].mass * planets[j].mass;
+
+            // Apply force to planet i
+            nextplanets[i].vx += dt * fx / planets[i].mass;
+            nextplanets[i].vy += dt * fy / planets[i].mass;
+
+            // Apply opposite force to planet j
+            nextplanets[j].vx -= dt * fx / planets[j].mass;
+            nextplanets[j].vy -= dt * fy / planets[j].mass;
+        }
+    }
+
+    for (int i = 0; i < nplanets; i++) {
+        nextplanets[i].x += dt * nextplanets[i].vx;
+        nextplanets[i].y += dt * nextplanets[i].vy;
+    }
+
+    free(planets);
+    return nextplanets;
 }
 
 int main(int argc, const char** argv){
