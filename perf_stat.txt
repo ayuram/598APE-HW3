@@ -1,22 +1,22 @@
-# started on Mon Apr 14 13:38:29 2025
+# started on Mon Apr 14 13:39:18 2025
 
 
  Performance counter stats for './main.exe 1000 5000':
 
-         11,628.65 msec task-clock                       #    1.000 CPUs utilized             
-                30      context-switches                 #    2.580 /sec                      
-                 0      cpu-migrations                   #    0.000 /sec                      
-                96      page-faults                      #    8.255 /sec                      
-    60,774,619,293      cycles                           #    5.226 GHz                       
-       120,057,321      stalled-cycles-frontend          #    0.20% frontend cycles idle      
-    90,135,406,713      instructions                     #    1.48  insn per cycle            
-                                                  #    0.00  stalled cycles per insn   
-     2,527,841,484      branches                         #  217.380 M/sec                     
-         6,921,755      branch-misses                    #    0.27% of all branches           
+        291,134.26 msec task-clock                       #   63.961 CPUs utilized             
+               246      context-switches                 #    0.845 /sec                      
+                22      cpu-migrations                   #    0.076 /sec                      
+               243      page-faults                      #    0.835 /sec                      
+ 1,364,679,073,361      cycles                           #    4.687 GHz                       
+    10,223,017,604      stalled-cycles-frontend          #    0.75% frontend cycles idle      
+   123,702,846,618      instructions                     #    0.09  insn per cycle            
+                                                  #    0.08  stalled cycles per insn   
+    12,653,044,887      branches                         #   43.461 M/sec                     
+        51,772,487      branch-misses                    #    0.41% of all branches           
 
-      11.629740956 seconds time elapsed
+       4.551732824 seconds time elapsed
 
-      11.628039000 seconds user
-       0.000999000 seconds sys
+     291.095037000 seconds user
+       0.010998000 seconds sys
 
 
