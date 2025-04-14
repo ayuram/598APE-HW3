@@ -245,6 +245,7 @@ void freeTree(Node* node) {
 void nextBarnesHut(Planet* planets, Node* root) {
     //  For each planet, compute net force from the tree
     //    Then update velocity & position
+    #pragma omp parallel for
     for (int i = 0; i < nplanets; i++) {
         double fx = 0.0, fy = 0.0; // accumulators for acceleration
         addForce(root, &planets[i], &fx, &fy);
