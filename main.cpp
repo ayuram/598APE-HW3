@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <math.h>
 #include <sys/time.h>
+#include <omp.h>
 
 float tdiff(struct timeval *start, struct timeval *end) {
   return (end->tv_sec - start->tv_sec) + 1e-6 * (end->tv_usec - start->tv_usec);
@@ -250,6 +251,7 @@ Planet* nextBarnesHut(Planet* planets) {
 
     // 2) For each planet, compute net force from the tree
     //    Then update velocity & position
+    #pragma omp parallel for
     for (int i = 0; i < nplanets; i++) {
         // Copy over old data first
         nextplanets[i].mass = planets[i].mass;
@@ -285,6 +287,9 @@ int main(int argc, const char** argv){
     }
     nplanets  = atoi(argv[1]);
     timesteps = atoi(argv[2]);
+    // print number of threads
+    int nthreads = omp_get_max_threads();
+    printf("Using %d threads\n", nthreads);
 
     // We'll use your original dt and G
     dt = 0.001;
