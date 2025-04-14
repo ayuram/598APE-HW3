@@ -45,7 +45,7 @@ double randomDouble() {
 
 int nplanets;
 int timesteps;
-#define THETA 0.5   // Opening angle for Barnes-Hut
+float THETA = 2.0;  // Opening angle for Barnes-Hut
 #define EPS   1e-4  // Softening parameter to avoid divide-by-zero
 
 
@@ -215,8 +215,6 @@ Node* buildQuadTree(Planet* planets, int n) {
 void addForce(Node* node, Planet* p, double* fx, double* fy) {
     if (!node || node->mass < 1e-12) return;
 
-    // If this node is a leaf with exactly 1 planet
-    // OR if the region is "small enough" from p's perspective
     double dx = node->cmx - p->x;
     double dy = node->cmy - p->y;
     double distSquared = (dx*dx + dy*dy + EPS);
@@ -284,6 +282,10 @@ int main(int argc, const char** argv){
    }
    nplanets  = atoi(argv[1]);
    timesteps = atoi(argv[2]);
+   // if a third argument is given, use it as THETA
+    if (argc > 3) {
+        THETA = atof(argv[3]);
+    }
 
    // Allocate initial planet array
    Planet* planets = (Planet*)malloc(sizeof(Planet) * nplanets);
